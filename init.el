@@ -39,7 +39,7 @@
 ;;(setq mac-option-modifier 'none)
 
 ;; configura a fonte do emacs
-(set-face-attribute 'default nil :font "Iosevka Nerd Font" :height 140)
+(set-face-attribute 'default nil :font "Iosevka Nerd Font" :height 160)
 
 ;; usa MELPA como gerenciador de pacotes
 (require 'package)
@@ -48,11 +48,17 @@
 (package-initialize)
 
 ;; atualiza os pacotes se necessários
-(unless package-archive-contents
-  (package-refresh-contents))
+;; (unless package-archive-contents
+;;   (package-refresh-contents))
 
 ;; instala o use-package para instalar pacotes
 (require 'use-package)
+
+;; auto pairs
+(use-package smartparens
+  :ensure t
+  :config
+  (smartparens-global-mode 1))
 
 ;; instala o doom-one tema
 (use-package doom-themes
@@ -64,7 +70,11 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(package-selected-packages nil))
+ '(package-selected-packages
+   '(all-the-icons centaur-tabs company-box consult dashboard doom-themes
+                   evil-leader flycheck go-mode key-chord lsp-ui
+                   neotree orderless posframe smartparens vertico
+                   vterm yasnippet-snippets)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -100,11 +110,26 @@
     (define-key evil-normal-state-map (kbd "L") 'centaur-tabs-forward)))
 
 ;; configura seletor de buffers
-(use-package consult
-  :ensure t)
+(use-package consult :ensure t)
 
 ;; janelas flutuantes
 (use-package posframe :ensure t)
+
+;; adiciona recurso de completação
+(use-package orderless
+  :ensure t
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-override '((file (styles basic partial-completion)))))
+
+;; interface de completação vertical
+(use-package vertico
+  :ensure t
+  :init
+  (vertico-mode)
+  :bind (:map vertico-map
+              ("<tab>" . vertico-next)
+              ("<backtab>" . vertico-previous)))
 
 ;; instala o evil mode - binds do vim
 (use-package evil
@@ -118,6 +143,14 @@
   :config
   (global-evil-leader-mode)
   (evil-leader/set-leader "<SPC>"))
+
+;; Fecha a janela de completions sem sair do modo insert (Evil)
+(define-key evil-insert-state-map (kbd "C-e") 
+  (lambda () 
+    (interactive)
+    (if (and (bound-and-true-p company-mode) (company--active-p))
+        (company-abort)
+      (message "No active completion"))))
 
 ;; configura cursor por modo - configurado no kitty
 (defun my/set-cursor-type ()
@@ -155,8 +188,8 @@
             (lambda ()
               (evil-define-key 'normal neotree-mode-map (kbd "TAB") 'neotree-enter)
               (evil-define-key 'normal neotree-mode-map (kbd "RET") 'neotree-enter)
-              (evil-define-key 'normal neotree-mode-map (kbd "h") 'neotree-exit)
-              (evil-define-key 'normal neotree-mode-map (kbd "H") 'neotree-hide)
+              (evil-define-key 'normal neotree-mode-map (kbd "e") 'neotree-exit)
+              (evil-define-key 'normal neotree-mode-map (kbd "h") 'neotree-toggle-hidden)
               (evil-define-key 'normal neotree-mode-map (kbd "R") 'neotree-refresh)
               (evil-define-key 'normal neotree-mode-map (kbd "U") 'neotree-select-up-node)
               (evil-define-key 'normal neotree-mode-map (kbd "SR") 'neotree-change-root)
@@ -273,6 +306,32 @@
 (use-package vterm
   :ensure t)
 
+;; dashboard (please, don't try organize title ascii, this is organized on emacs)
+(use-package dashboard
+  :ensure t
+  :config
+  (dashboard-setup-startup-hook)
+  (setq dashboard-banner-logo-title "
+                   ___           ___                       ___           ___           ___
+    _____         /  /\\         /  /\\        ___          /__/\\         /  /\\         /  /\\
+   /  /::\\       /  /::\\       /  /::|      /  /\\         \\  \\:\\       /  /:/_       /  /::\\
+  /  /:/\\:\\     /  /:/\\:\\     /  /:/:|     /  /:/          \\  \\:\\     /  /:/ /\\     /  /:/\\:\\
+ /  /:/~/::\\   /  /:/~/::\\   /  /:/|:|__  /__/::\\      _____\\__\\:\\   /  /:/_/::\\   /  /:/~/::\\
+/__/:/ /:/\\:| /__/:/ /:/\\:\\ /__/:/ |:| /\\ \\__\\/\\:\\__  /__/::::::::\\ /__/:/__\\/\\:\\ /__/:/ /:/\\:\\
+\\  \\:\\/:/~/:/ \\  \\:\\/:/__\\/ \\__\\/  |:|/:/    \\  \\:\\/\\ \\  \\:\\~~\\~~\\/ \\  \\:\\ /~~/:/ \\  \\:\\/:/__\\/
+ \\  \\::/ /:/   \\  \\::/          |  |:/:/      \\__\\::/  \\  \\:\\  ~~~   \\  \\:\\  /:/   \\  \\::/
+  \\  \\:\\/:/     \\  \\:\\          |  |::/       /__/:/    \\  \\:\\        \\  \\:\\/:/     \\  \\:\\
+   \\  \\::/       \\  \\:\\         |  |:/        \\__\\/      \\  \\:\\        \\  \\::/       \\  \\:\\
+    \\__\\/         \\__\\/         |__|/                     \\__\\/         \\__\\/         \\__\\/
+
+"
+        dashboard-startup-banner 'logo
+        dashboard-items '((recents . 5)
+                          (projects . 5)
+                          (agenda . 5)))
+  (setq dashboard-set-heading-icons t)
+  (setq dashboard-set-file-icons t))
+
 ;; função para abrir o vterm em baixo
 (defun my/toggle-vterm ()
   "Alterna a visibilidade do vterm em uma janela inferior."
@@ -314,4 +373,7 @@
   ;; temrinal integrado
   "t" 'my/toggle-vterm
   ;; fechar o buffer aberto
-  "bd" (lambda () (interactive) (kill-this-buffer)))
+  "bd" (lambda () (interactive) (kill-this-buffer))
+  ;; abre lista de buffers
+  "bl" (lambda () (interactive) (consult-buffer))
+  "/" 'consult-ripgrep)

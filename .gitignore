@@ -6,3 +6,6 @@ tramp
 .lsp-session-v1
 init.el~
 #init.el#
+eln-cache
+projects
+recentf
