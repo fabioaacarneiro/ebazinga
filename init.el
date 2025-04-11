@@ -65,12 +65,7 @@
   :ensure t
   :config
   (load-theme 'doom-one t))
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages nil))
+
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -358,11 +353,22 @@
 )
 
 ;; ícones personalizados para os status
-(custom-set-variables
- '(git-gutter:window-width 2)
- '(git-gutter:modified-sign "✏️")  ;; Arquivo modificado
- '(git-gutter:added-sign "🌱")     ;; Arquivo novo
- '(git-gutter:deleted-sign "🗑️"))  ;; Arquivo deletado
+;; para usar recomendo não usar o diff-hl
+;; graphic icons
+;; (custom-set-variables
+;;  '(git-gutter:window-width 2)
+;;  '(git-gutter:modified-sign "✏️")  ;; Arquivo modificado
+;;  '(git-gutter:added-sign "🌱")     ;; Arquivo novo
+;;  '(git-gutter:deleted-sign "🗑️"))  ;; Arquivo deletado
+
+;; dif-hl para git
+;; se for usar não recomendo usar os ícones git-gutter
+(use-package diff-hl
+  :ensure t
+  :config
+  (global-diff-hl-mode)
+  (diff-hl-margin-mode 1)  ;; se quiser na margem direita
+  (diff-hl-flydiff-mode))  ;; atualiza em tempo real
 
 ;; Instalar e configurar o magit
 (use-package magit
