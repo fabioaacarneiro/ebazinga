@@ -381,6 +381,10 @@
 (evil-define-key 'normal global-map (kbd "C-x c") 'magit-commit)  ;; Commit
 (evil-define-key 'normal global-map (kbd "C-x p") 'magit-push)  ;; Push
 
+;; comentar e descomentar linhas
+(evil-define-key 'normal 'global (kbd "gc") 'comment-line)
+(evil-define-key 'visual 'global (kbd "gc") 'comment-or-uncomment-region)
+
 ;; bind para code action do lsp
 (evil-leader/set-key
   ;; code action
