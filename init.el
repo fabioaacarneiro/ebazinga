@@ -70,11 +70,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(package-selected-packages
-   '(all-the-icons centaur-tabs company-box consult dashboard doom-themes
-                   evil-leader flycheck go-mode key-chord lsp-ui
-                   neotree orderless posframe smartparens vertico
-                   vterm yasnippet-snippets)))
+ '(package-selected-packages nil))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -189,7 +185,7 @@
               (evil-define-key 'normal neotree-mode-map (kbd "TAB") 'neotree-enter)
               (evil-define-key 'normal neotree-mode-map (kbd "RET") 'neotree-enter)
               (evil-define-key 'normal neotree-mode-map (kbd "e") 'neotree-exit)
-              (evil-define-key 'normal neotree-mode-map (kbd "h") 'neotree-toggle-hidden)
+              (evil-define-key 'normal neotree-mode-map (kbd "h") 'neotree-hidden-file-toggle)
               (evil-define-key 'normal neotree-mode-map (kbd "R") 'neotree-refresh)
               (evil-define-key 'normal neotree-mode-map (kbd "U") 'neotree-select-up-node)
               (evil-define-key 'normal neotree-mode-map (kbd "SR") 'neotree-change-root)
@@ -347,6 +343,37 @@
           (if buf
               (switch-to-buffer buf)
             (vterm)))))))
+
+;; Instalar e configurar o git-gutter
+(use-package git-gutter
+  :ensure t
+  :config
+  (global-git-gutter-mode +1)  ;; Ativa o modo global do git-gutter
+  (setq git-gutter:update-interval 2)  ;; Atualiza a cada 2 segundos
+  ;; Atalhos para navegar entre as alterações
+  (evil-define-key 'normal global-map (kbd "C-x n") 'git-gutter:next-hunk)  ;; Próxima alteração
+  (evil-define-key 'normal global-map (kbd "C-x p") 'git-gutter:previous-hunk)  ;; Alteração anterior
+  (evil-define-key 'normal global-map (kbd "C-x s") 'git-gutter:stage-hunk)  ;; Stage da alteração
+  (evil-define-key 'normal global-map (kbd "C-x r") 'git-gutter:revert-hunk)  ;; Reverter a alteração
+)
+
+;; ícones personalizados para os status
+(custom-set-variables
+ '(git-gutter:window-width 2)
+ '(git-gutter:modified-sign "✏️")  ;; Arquivo modificado
+ '(git-gutter:added-sign "🌱")     ;; Arquivo novo
+ '(git-gutter:deleted-sign "🗑️"))  ;; Arquivo deletado
+
+;; Instalar e configurar o magit
+(use-package magit
+  :ensure t)
+
+;; Atalhos para magit usando Evil
+(evil-define-key 'normal global-map (kbd "C-x g") 'magit-status)  ;; Status do repositório
+(evil-define-key 'normal global-map (kbd "C-x l") 'magit-log)  ;; Log de commits
+(evil-define-key 'normal global-map (kbd "C-x b") 'magit-blame)  ;; Blame
+(evil-define-key 'normal global-map (kbd "C-x c") 'magit-commit)  ;; Commit
+(evil-define-key 'normal global-map (kbd "C-x p") 'magit-push)  ;; Push
 
 ;; bind para code action do lsp
 (evil-leader/set-key
