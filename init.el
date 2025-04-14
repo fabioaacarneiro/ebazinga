@@ -39,7 +39,7 @@
 ;;(setq mac-option-modifier 'none)
 
 ;; configura a fonte do emacs
-(set-face-attribute 'default nil :font "Iosevka Nerd Font" :height 160)
+(set-face-attribute 'default nil :font "Iosevka Nerd Font" :height 110)
 
 ;; usa MELPA como gerenciador de pacotes
 (require 'package)
@@ -224,6 +224,7 @@
   :commands lsp
   :hook ((go-mode . lsp)
          (js-mode . lsp)
+         (ruby-mode . lsp)
          (typescript-ts-mode . lsp))
   :config
   (setq lsp-completion-provider :capf)) 
@@ -244,6 +245,21 @@
 
 (setq company-backends '(company-capf company-files))
 (setq lsp-signature-function 'lsp-signature-posframe)
+
+;; configuração de formatação do ruby
+(defun my-ruby-format ()
+  (when (eq major-mode 'ruby-mode)
+    (shell-command-to-string (format "stardardrb --fix %s" (shell-quote-argument buffer-file-name)))
+    (revert-buffer t t t)))
+
+(add-hook 'after-save-hook 'my-ruby-format)
+
+;; melhora sintaxe para ruby
+(use-package enh-ruby-mode
+  :ensure t
+  :mode "\\.rb\\'"
+  :interpreter "ruby"
+  :hook (enh-ruby-mode . lsp))
 
 ;; which-key ajuda a ver os atalhos
 (use-package which-key
@@ -413,4 +429,12 @@
   "bd" (lambda () (interactive) (kill-this-buffer))
   ;; abre lista de buffers
   "bl" (lambda () (interactive) (consult-buffer))
-  "/" 'consult-ripgrep)
+  "/" 'consult-ripgrep
+  "f" 'project-find-file)
+
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages nil))
