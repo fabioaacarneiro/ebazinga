@@ -356,8 +356,21 @@
                  :foreground "green"
                  :weight bold)))))
 
-;; atalhos para facilitar redimensionar as janelas
+;; em alguns casos de palavras com início igual, o vertico
+;; entende que quer ele, e pode ter problemas, quando por exemplo
+;; vai copiar um arquivo com nome .env-example e a cópia quer dar
+;; o nome de .env o vertico vai selecionar o .env-example e não
+;; vai te permitir criar com o nome desejado, nesses cados é
+;; necessário desativar o vertico
+(global-set-key (kbd "C-c v") 'vertico-mode)
 
+;; Hooks para Neotree: Reativar o Vertico depois de completar a ação
+(add-hook 'neotree-create-file-after-hook #'my/enable-vertico-after-file-action)
+(add-hook 'neotree-rename-file-after-hook #'my/enable-vertico-after-file-action)
+(add-hook 'neotree-move-file-after-hook #'my/enable-vertico-after-file-action)
+(add-hook 'neotree-copy-file-after-hook #'my/enable-vertico-after-file-action)
+
+;; atalhos para facilitar redimensionar as janelas
 (global-set-key (kbd "C-s-<left>")  'shrink-window-horizontally)
 (global-set-key (kbd "C-s-<right>") 'enlarge-window-horizontally)
 (global-set-key (kbd "C-s-<down>")  'shrink-window)
