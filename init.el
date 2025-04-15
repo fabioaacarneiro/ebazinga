@@ -90,15 +90,10 @@
   (setq centaur-tabs-set-close-button nil)
   (setq centaur-tabs-set-modified-marker t)
   (setq centaur-tabs-show-new-tab-button nil)
-  (setq centaur-tabs-cycle-scope 'tabs)
+  (setq centaur-tabs-cycle-scope 'tabs))
 
-  ;; Define grupos automáticos (opcional)
-  (centaur-tabs-group-by-projectile-project)
-
-  ;; Teclas para navegar entre abas com evil-mode
-  (with-eval-after-load 'evil
-    (define-key evil-normal-state-map (kbd "H") 'centaur-tabs-backward)
-    (define-key evil-normal-state-map (kbd "L") 'centaur-tabs-forward)))
+;; Define grupos automáticos (opcional)
+(centaur-tabs-group-by-projectile-project)
 
 ;; configura seletor de buffers
 (use-package consult :ensure t)
@@ -122,39 +117,13 @@
               ("<tab>" . vertico-next)
               ("<backtab>" . vertico-previous)))
 
-;; instala o evil mode - binds do vim
-(use-package evil
-  :ensure t
-  :config
-  (evil-mode 1))
-
-;; instala o evil leader para usar <space>
-(use-package evil-leader
-  :ensure t
-  :config
-  (global-evil-leader-mode)
-  (evil-leader/set-leader "<SPC>"))
-
-;; Fecha a janela de completions sem sair do modo insert (Evil)
-(define-key evil-insert-state-map (kbd "C-e") 
+;; Fecha a janela de completions do company
+(global-set-key (kbd "C-e") 
   (lambda () 
     (interactive)
     (if (and (bound-and-true-p company-mode) (company--active-p))
         (company-abort)
-      (message "No active completion"))))
-
-;; configura cursor por modo - configurado no kitty
-(defun my/set-cursor-type ()
-  (let ((cursor-shape
-         (pcase evil-state
-           ('normal "\e[2 q")   ;; bloco
-           ('insert "\e[6 q")   ;; barra
-           ('visual "\e[2 q")   ;; bloco
-           ('replace "\e[4 q")  ;; underline
-           (_ "\e[2 q"))))      ;; fallback: bloco
-    (send-string-to-terminal cursor-shape)))
-
-(add-hook 'post-command-hook #'my/set-cursor-type)
+      (end-of-line))))
 
 ;; instala ícones para neotree
 (use-package all-the-icons
@@ -165,37 +134,19 @@
   :ensure t
   :config
   (setq neo-theme 'icons)
-  (setq neo-smart-open t)
+  (setq neo-smart-open nil)
+  (setq neo-show-hidden-files t)
+  (setq neo-window-width 45)
   (setq new-window-fixed-size nil))
+ 
+(defun my/neotree-refresh-on-file-change ()
+  "Refresh NeoTree if it's visible."
+  (when (neo-global--window-exists-p)
+    (neotree-refresh)))
 
-;; abrir o neotree com <space>e com evil-leader
-(with-eval-after-load 'evil-leader
-  (evil-leader/set-key
-    "e" 'neotree-toggle))
-
-;; atalhos para navegar no neotree com evil-mode
-(with-eval-after-load 'neotree
-  (add-hook 'neotree-mode-hook
-            (lambda ()
-              (evil-define-key 'normal neotree-mode-map (kbd "TAB") 'neotree-enter)
-              (evil-define-key 'normal neotree-mode-map (kbd "RET") 'neotree-enter)
-              (evil-define-key 'normal neotree-mode-map (kbd "e") 'neotree-exit)
-              (evil-define-key 'normal neotree-mode-map (kbd "h") 'neotree-hidden-file-toggle)
-              (evil-define-key 'normal neotree-mode-map (kbd "R") 'neotree-refresh)
-              (evil-define-key 'normal neotree-mode-map (kbd "U") 'neotree-select-up-node)
-              (evil-define-key 'normal neotree-mode-map (kbd "SR") 'neotree-change-root)
-              (evil-define-key 'normal neotree-mode-map (kbd "o") 'neotree-enter)
-              (evil-define-key 'normal neotree-mode-map (kbd "d") 'neotree-delete-node)
-              (evil-define-key 'normal neotree-mode-map (kbd "r") 'neotree-rename-node)
-              (evil-define-key 'normal neotree-mode-map (kbd "a") 'neotree-create-node))))
-
-
-;; key-chord para detectar teclas apertando rapido
-(use-package key-chord
-  :ensure t
-  :config
-  (key-chord-mode 1)
-  (key-chord-define evil-insert-state-map "jk" 'evil-normal-state))
+(add-hook 'after-save-hook #'my/neotree-refresh-on-file-change)
+(add-hook 'after-revert-hook #'my/neotree-refresh-on-file-change)
+(add-hook 'dired-after-readin-hook #'my/neotree-refresh-on-file-change)
 
 ;; autocomplete
 (use-package company
@@ -218,6 +169,27 @@
 (use-package yasnippet-snippets
   :ensure t)
 
+;; configuração de formatação do ruby
+(defun my-ruby-format ()
+  (when (eq major-mode 'ruby-mode)
+    (shell-command-to-string (format "standardrb --fix %s" (shell-quote-argument buffer-file-name)))
+    (revert-buffer t t t)))
+
+(add-hook 'after-save-hook 'my-ruby-format)
+
+;; melhora sintaxe para ruby
+(use-package enh-ruby-mode
+  :ensure t
+  :mode "\\.rb\\'"
+  :interpreter "ruby"
+  :hook (enh-ruby-mode . lsp))
+
+;; configura lsp para php
+(use-package php-mode
+  :ensure t
+  :mode "\\.php\\'"
+  :hook (php-mode . lsp))
+
 ;; configuração para LSP
 (use-package lsp-mode
   :ensure t
@@ -225,8 +197,10 @@
   :hook ((go-mode . lsp)
          (js-mode . lsp)
          (ruby-mode . lsp)
+         (php-mode . lsp)
          (typescript-ts-mode . lsp))
   :config
+  (setq lsp-intelephense-multi-root nil)
   (setq lsp-completion-provider :capf)) 
 
 (use-package lsp-ui
@@ -245,21 +219,6 @@
 
 (setq company-backends '(company-capf company-files))
 (setq lsp-signature-function 'lsp-signature-posframe)
-
-;; configuração de formatação do ruby
-(defun my-ruby-format ()
-  (when (eq major-mode 'ruby-mode)
-    (shell-command-to-string (format "stardardrb --fix %s" (shell-quote-argument buffer-file-name)))
-    (revert-buffer t t t)))
-
-(add-hook 'after-save-hook 'my-ruby-format)
-
-;; melhora sintaxe para ruby
-(use-package enh-ruby-mode
-  :ensure t
-  :mode "\\.rb\\'"
-  :interpreter "ruby"
-  :hook (enh-ruby-mode . lsp))
 
 ;; which-key ajuda a ver os atalhos
 (use-package which-key
@@ -286,17 +245,6 @@
 ;; ativar seleção para o clipboard
 (setq x-select-enable-clipboard t)
 (setq select-enable-clipboard t)
-
-;; sempre usa o clipboard com yank/copy
-(defun my/copy-to-clipboard ()
-  (interactive)
-  (if (use-region-p)
-      (progn
-        (kill-new (buffer-substring (region-beginning) (region-end)))
-        (message "Copied to clipboard"))
-    (message "No region active")))
-
-(define-key evil-visual-state-map (kbd "C-c C-y") 'my/copy-to-clipboard)
 
 ;; diagnostics
 (use-package flycheck
@@ -362,75 +310,71 @@
   (global-git-gutter-mode +1)  ;; Ativa o modo global do git-gutter
   (setq git-gutter:update-interval 2)  ;; Atualiza a cada 2 segundos
   ;; Atalhos para navegar entre as alterações
-  (evil-define-key 'normal global-map (kbd "C-x n") 'git-gutter:next-hunk)  ;; Próxima alteração
-  (evil-define-key 'normal global-map (kbd "C-x p") 'git-gutter:previous-hunk)  ;; Alteração anterior
-  (evil-define-key 'normal global-map (kbd "C-x s") 'git-gutter:stage-hunk)  ;; Stage da alteração
-  (evil-define-key 'normal global-map (kbd "C-x r") 'git-gutter:revert-hunk)  ;; Reverter a alteração
+  (global-set-key (kbd "C-c C-n") 'git-gutter:next-hunk)  ;; Próxima alteração
+  (global-set-key (kbd "C-c C-p") 'git-gutter:previous-hunk)  ;; Alteração anterior
+  (global-set-key (kbd "C-c C-s") 'git-gutter:stage-hunk)  ;; Stage da alteração
+  (global-set-key (kbd "C-c C-r") 'git-gutter:revert-hunk)  ;; Reverter a alteração
 )
 
 ;; ícones personalizados para os status
-;; para usar recomendo não usar o diff-hl
 ;; graphic icons
-;; (custom-set-variables
-;;  '(git-gutter:window-width 2)
-;;  '(git-gutter:modified-sign "✏️")  ;; Arquivo modificado
-;;  '(git-gutter:added-sign "🌱")     ;; Arquivo novo
-;;  '(git-gutter:deleted-sign "🗑️"))  ;; Arquivo deletado
-
-;; dif-hl para git
-;; se for usar não recomendo usar os ícones git-gutter
-(use-package diff-hl
-  :ensure t
-  :config
-  (global-diff-hl-mode)
-  (diff-hl-margin-mode 1)  ;; se quiser na margem direita
-  (diff-hl-flydiff-mode))  ;; atualiza em tempo real
+(custom-set-variables
+  '(git-gutter:window-width 2)
+  '(git-gutter:modified-sign "✏️")  ;; Arquivo modificado
+  '(git-gutter:added-sign "🌱")     ;; Arquivo novo
+  '(git-gutter:deleted-sign "🗑️"))  ;; Arquivo deletado
 
 ;; Instalar e configurar o magit
 (use-package magit
   :ensure t)
 
-;; Atalhos para magit usando Evil
-(evil-define-key 'normal global-map (kbd "C-x g") 'magit-status)  ;; Status do repositório
-(evil-define-key 'normal global-map (kbd "C-x l") 'magit-log)  ;; Log de commits
-(evil-define-key 'normal global-map (kbd "C-x b") 'magit-blame)  ;; Blame
-(evil-define-key 'normal global-map (kbd "C-x c") 'magit-commit)  ;; Commit
-(evil-define-key 'normal global-map (kbd "C-x p") 'magit-push)  ;; Push
+;; adcionar multiplos cursores
+(use-package multiple-cursors
+  :ensure t
+  :bind
+  (("C-c m c" . mc/edit-lines)
+   ("C-c m n" . mc/mark-next-like-this)
+   ("C-c m p" . mc/mark-previous-like-this)
+   ("C-c m a" . mc/mark-all-like-this)))
+
+;; Atalhos para magit
+(global-set-key (kbd "C-c g g") 'magit-status)  ;; Status do repositório
+(global-set-key (kbd "C-c g l") 'magit-log)  ;; Log de commits
+(global-set-key (kbd "C-c g b") 'magit-blame)  ;; Blame
+(global-set-key (kbd "C-c g c") 'magit-commit)  ;; Commit
+(global-set-key (kbd "C-c g p") 'magit-push)  ;; Push
 
 ;; comentar e descomentar linhas
-(evil-define-key 'normal 'global (kbd "gc") 'comment-line)
-(evil-define-key 'visual 'global (kbd "gc") 'comment-or-uncomment-region)
+(global-set-key (kbd "C-c c") 'comment-line)
+(global-set-key (kbd "C-c u") 'comment-or-uncomment-region)
+ 
+;; Neotree
+(global-set-key (kbd "C-c o") 'neotree-toggle)
 
-;; bind para code action do lsp
-(evil-leader/set-key
-  ;; code action
-  "aa" 'lsp-execute-code-action
-  ;; organize imports
-  "ao" 'lsp-organize-imports
-  ;; renomear
-  "ar" 'lsp-rename
-  ;; formatar o buffer
-  "af" 'lsp-format-buffer
-  ;; assinatura de método
-  "gk" (lambda () (interactive) (lsp-signature-activate)) 
-  ;; descrição
-  "gh" 'lsp-describe-thing-at-point
-  ;; ir para definição
-  "gd" 'lsp-ui-peek-find-definitions
-  ;; ir para referencia
-  "gr" 'lsp-ui-peek-find-references
-  ;; ir para implementação
-  "gi" 'lsp-ui-peek-find-implementation
-  ;; ir para ambiente de trabalho
-  "gs" 'lsp-ui-peek-find-workspace-symbol
-  ;; temrinal integrado
-  "t" 'my/toggle-vterm
-  ;; fechar o buffer aberto
-  "bd" (lambda () (interactive) (kill-this-buffer))
-  ;; abre lista de buffers
-  "bl" (lambda () (interactive) (consult-buffer))
-  "/" 'consult-ripgrep
-  "f" 'project-find-file)
+;; LSP actions
+(global-set-key (kbd "C-c a a") 'lsp-execute-code-action)
+(global-set-key (kbd "C-c a o") 'lsp-organize-imports)
+(global-set-key (kbd "C-c a r") 'lsp-rename)
+(global-set-key (kbd "C-c a f") 'lsp-format-buffer)
+
+;; LSP infos
+(global-set-key (kbd "C-c l k") (lambda () (interactive) (lsp-signature-activate)))
+(global-set-key (kbd "C-c l h") 'lsp-describe-thing-at-point)
+(global-set-key (kbd "C-c l d") 'lsp-ui-peek-find-definitions)
+(global-set-key (kbd "C-c l r") 'lsp-ui-peek-find-references)
+(global-set-key (kbd "C-c l i") 'lsp-ui-peek-find-implementation)
+(global-set-key (kbd "C-c l s") 'lsp-ui-peek-find-workspace-symbol)
+
+;; Terminal
+(global-set-key (kbd "C-c t") 'my/toggle-vterm)
+
+;; Buffers
+(global-set-key (kbd "C-c b d") (lambda () (interactive) (kill-this-buffer)))
+(global-set-key (kbd "C-c b l") (lambda () (interactive) (consult-buffer)))
+
+;; Fuzzy search
+(global-set-key (kbd "C-c /") 'consult-ripgrep)
+(global-set-key (kbd "C-c f") 'project-find-file)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
