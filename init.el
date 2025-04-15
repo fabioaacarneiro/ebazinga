@@ -319,10 +319,16 @@
 ;; ícones personalizados para os status
 ;; graphic icons
 (custom-set-variables
-  '(git-gutter:window-width 2)
-  '(git-gutter:modified-sign "✏️")  ;; Arquivo modificado
-  '(git-gutter:added-sign "🌱")     ;; Arquivo novo
-  '(git-gutter:deleted-sign "🗑️"))  ;; Arquivo deletado
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(git-gutter:added-sign "🌱")
+ '(git-gutter:deleted-sign "🗑️")
+ '(git-gutter:modified-sign "✏️")
+ '(git-gutter:window-width 2)
+ '(package-selected-packages nil))
+  ;; Arquivo deletado
 
 ;; Instalar e configurar o magit
 (use-package magit
@@ -336,6 +342,26 @@
    ("C-c m n" . mc/mark-next-like-this)
    ("C-c m p" . mc/mark-previous-like-this)
    ("C-c m a" . mc/mark-all-like-this)))
+
+;; facilia a movimentação entre as janelas abertas
+(use-package ace-window
+  :ensure t
+  :bind ("M-o" . ace-window))
+
+;; aumenta o tamanho do número da janela e deixa verde
+(custom-set-faces
+ '(aw-leading-char-face
+   ((t (:inherit ace-jump-face-foreground
+                 :height 2.0
+                 :foreground "green"
+                 :weight bold)))))
+
+;; atalhos para facilitar redimensionar as janelas
+
+(global-set-key (kbd "C-s-<left>")  'shrink-window-horizontally)
+(global-set-key (kbd "C-s-<right>") 'enlarge-window-horizontally)
+(global-set-key (kbd "C-s-<down>")  'shrink-window)
+(global-set-key (kbd "C-s-<up>")    'enlarge-window)
 
 ;; Atalhos para magit
 (global-set-key (kbd "C-c g g") 'magit-status)  ;; Status do repositório
@@ -376,9 +402,4 @@
 (global-set-key (kbd "C-c /") 'consult-ripgrep)
 (global-set-key (kbd "C-c f") 'project-find-file)
 
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages nil))
+
