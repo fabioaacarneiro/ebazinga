@@ -9,14 +9,42 @@
 ;;     /Applications/Emacs.app/Contents/MacOS/Emacs "$@" &   
 ;; }
 
+;; configuração do straight, necessário para o lsp-bridge
+;; e outros pacotes hospedados no github
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 6))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+(setq straight-check-for-modifications 'live) ;; Verifica se há atualizações nos pacotes de forma assíncrona.
+
+;; Integra straight.el com use-package
+(straight-use-package 'use-package)
+(setq straight-use-package-by-default t)
+(setq native-comp-deferred-compilation t) ;; Adia a compilação de pacotes para quando necessário
+(setq comp-deferred-compilation nil) ;; Desabilita a compilação nativa imediata
+
+;; Rola uma linha de cada vez ao pressionar a seta
+(setq scroll-step 1)
+
+;; define o cursor para pipe (|)
+(setq-default cursor-type 'bar)
+
 ;; desativa tela inicial do emacs
 (setq inhibit-startup-screen t)
 
 ;; desativa arquivos de backup
 (setq make-backup-files nil)
 
-;; desativa arquivos autosave
-(setq auto-save-default nil)
+;; desativa arquivos (setq auto-save-default nil)
 
 ;; desativa lockfiles (arquivo .#arquivo temporário)
 (setq create-lockfiles nil)
@@ -48,8 +76,8 @@
 (package-initialize)
 
 ;; atualiza os pacotes se necessários
-;; (unless package-archive-contents
-;;   (package-refresh-contents))
+(unless package-archive-contents
+  (package-refresh-contents))
 
 ;; instala o use-package para instalar pacotes
 (require 'use-package)
@@ -66,12 +94,13 @@
   :config
   (load-theme 'doom-one t))
 
+;; ajusta o tamanho do identificador da janela e deixa-o verde
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(aw-leading-char-face ((t (:inherit ace-jump-face-foreground :height 2.0 :foreground "green" :weight bold)))))
 
 ;; configurando abas
 ;; Instala e configura o centaur-tabs
@@ -95,6 +124,14 @@
 ;; Define grupos automáticos (opcional)
 (centaur-tabs-group-by-projectile-project)
 
+;; instala markdown-mode
+(use-package markdown-mode
+  :ensure t
+  :mode ("README\\.md\\'" . gfm-mode)
+  :init (setq markdown-command "multimarkdown")
+  :bind (:map markdown-mode-map
+         ("C-c C-e" . markdown-do)))
+
 ;; configura seletor de buffers
 (use-package consult :ensure t)
 
@@ -117,49 +154,125 @@
               ("<tab>" . vertico-next)
               ("<backtab>" . vertico-previous)))
 
-;; Fecha a janela de completions do company
-(global-set-key (kbd "C-e") 
-  (lambda () 
-    (interactive)
-    (if (and (bound-and-true-p company-mode) (company--active-p))
-        (company-abort)
-      (end-of-line))))
-
 ;; instala ícones para neotree
 (use-package all-the-icons
   :ensure t)
 
-;; instala o neotree
-(use-package neotree
+;; instala o treemacs
+(use-package treemacs
   :ensure t
+  :defer t
+  :init
+  (with-eval-after-load 'winum
+    (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
   :config
-  (setq neo-theme 'icons)
-  (setq neo-smart-open nil)
-  (setq neo-show-hidden-files t)
-  (setq neo-window-width 45)
-  (setq new-window-fixed-size nil))
- 
-(defun my/neotree-refresh-on-file-change ()
-  "Refresh NeoTree if it's visible."
-  (when (neo-global--window-exists-p)
-    (neotree-refresh)))
+  (progn
+    (setq treemacs-collapse-dirs                   (if treemacs-python-executable 3 0)
+          treemacs-deferred-git-apply-delay        0.5
+          treemacs-directory-name-transformer      #'identity
+          treemacs-display-in-side-window          t
+          treemacs-eldoc-display                   'simple
+          treemacs-file-event-delay                2000
+          treemacs-file-extension-regex            treemacs-last-period-regex-value
+          treemacs-file-follow-delay               0.2
+          treemacs-file-name-transformer           #'identity
+          treemacs-follow-after-init               t
+          treemacs-expand-after-init               t
+          treemacs-find-workspace-method           'find-for-file-or-pick-first
+          treemacs-git-command-pipe                ""
+          treemacs-goto-tag-strategy               'refetch-index
+          treemacs-header-scroll-indicators        '(nil . "^^^^^^")
+          treemacs-hide-dot-git-directory          t
+          treemacs-indentation                     2
+          treemacs-indentation-string              " "
+          treemacs-is-never-other-window           nil
+          treemacs-max-git-entries                 5000
+          treemacs-missing-project-action          'ask
+          treemacs-move-files-by-mouse-dragging    t
+          treemacs-move-forward-on-expand          nil
+          treemacs-no-png-images                   nil
+          treemacs-no-delete-other-windows         t
+          treemacs-project-follow-cleanup          nil
+          treemacs-persist-file                    (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
+          treemacs-position                        'left
+          treemacs-read-string-input               'from-child-frame
+          treemacs-recenter-distance               0.1
+          treemacs-recenter-after-file-follow      nil
+          treemacs-recenter-after-tag-follow       nil
+          treemacs-recenter-after-project-jump     'always
+          treemacs-recenter-after-project-expand   'on-distance
+          treemacs-litter-directories              '("/node_modules" "/.venv" "/.cask")
+          treemacs-project-follow-into-home        nil
+          treemacs-show-cursor                     nil
+          treemacs-show-hidden-files               t
+          treemacs-silent-filewatch                nil
+          treemacs-silent-refresh                  nil
+          treemacs-sorting                         'alphabetic-asc
+          treemacs-select-when-already-in-treemacs 'move-back
+          treemacs-space-between-root-nodes        t
+          treemacs-tag-follow-cleanup              t
+          treemacs-tag-follow-delay                1.5
+          treemacs-text-scale                      nil
+          treemacs-user-mode-line-format           nil
+          treemacs-user-header-line-format         nil
+          treemacs-wide-toggle-width               70
+          treemacs-width                           45
+          treemacs-width-increment                 1
+          treemacs-width-is-initially-locked       t
+          treemacs-workspace-switch-cleanup        nil)
 
-(add-hook 'after-save-hook #'my/neotree-refresh-on-file-change)
-(add-hook 'after-revert-hook #'my/neotree-refresh-on-file-change)
-(add-hook 'dired-after-readin-hook #'my/neotree-refresh-on-file-change)
+    ;; The default width and height of the icons is 22 pixels. If you are
+    ;; using a Hi-DPI display, uncomment this to double the icon size.
+    ;;(treemacs-resize-icons 44)
+    
+    (treemacs-follow-mode t)
+    (treemacs-filewatch-mode t)
+    (treemacs-fringe-indicator-mode 'always)
+    (when treemacs-python-executable
+      (treemacs-git-commit-diff-mode t))
 
-;; autocomplete
-(use-package company
+    (pcase (cons (not (null (executable-find "git")))
+                 (not (null treemacs-python-executable)))
+      (`(t . t)
+       (treemacs-git-mode 'deferred))
+      (`(t . _)
+       (treemacs-git-mode 'simple)))
+
+    (treemacs-hide-gitignored-files-mode nil))
+  :bind
+  (:map global-map
+        ("M-0"       . treemacs-select-window)
+        ("C-x t 1"   . treemacs-delete-other-windows)
+        ("C-x t t"   . treemacs)
+        ("C-x t d"   . treemacs-select-directory)
+        ("C-x t B"   . treemacs-bookmark)
+        ("C-x t C-t" . treemacs-find-file)
+        ("C-x t M-t" . treemacs-find-tag)))
+
+(use-package treemacs-projectile
+  :after (treemacs projectile)
+  :ensure t)
+
+(use-package treemacs-icons-dired
+  :hook (dired-mode . treemacs-icons-dired-enable-once)
+  :ensure t)
+
+(use-package treemacs-magit
+  :after (treemacs magit)
+  :ensure t)
+
+(use-package treemacs-persp ;;treemacs-perspective if you use perspective.el vs. persp-mode
+  :after (treemacs persp-mode) ;;or perspective vs. persp-mode
   :ensure t
-  :hook (after-init . global-company-mode)
-  :config
-  (setq company-minimum-prefix-length 1
-        company-idle-delay 0.0))
-  
-;; melhora o visual do company
-(use-package company-box
+  :config (treemacs-set-scope-type 'Perspectives))
+
+(use-package treemacs-tab-bar ;;treemacs-tab-bar if you use tab-bar-mode
+  :after (treemacs)
   :ensure t
-  :hook (company-mode . company-box-mode))
+  :config (treemacs-set-scope-type 'Tabs))
+
+;; inicia o treemacs ao abrir o emacs
+(treemacs-start-on-boot)
 
 ;; snippets
 (use-package yasnippet
@@ -169,6 +282,11 @@
 (use-package yasnippet-snippets
   :ensure t)
 
+;; configura lsp para ruby
+(use-package ruby-mode
+             :ensure t
+             :hook (ruby-mode . lsp-bridge-mode))
+
 ;; configuração de formatação do ruby
 (defun my-ruby-format ()
   (when (eq major-mode 'ruby-mode)
@@ -177,48 +295,32 @@
 
 (add-hook 'after-save-hook 'my-ruby-format)
 
-;; melhora sintaxe para ruby
-(use-package enh-ruby-mode
-  :ensure t
-  :mode "\\.rb\\'"
-  :interpreter "ruby"
-  :hook (enh-ruby-mode . lsp))
-
 ;; configura lsp para php
 (use-package php-mode
   :ensure t
   :mode "\\.php\\'"
   :hook (php-mode . lsp))
 
-;; configuração para LSP
-(use-package lsp-mode
-  :ensure t
-  :commands lsp
-  :hook ((go-mode . lsp)
-         (js-mode . lsp)
-         (ruby-mode . lsp)
-         (php-mode . lsp)
-         (typescript-ts-mode . lsp))
-  :config
-  (setq lsp-intelephense-multi-root nil)
-  (setq lsp-completion-provider :capf)) 
+;; instala o codeium
+(straight-use-package '(codeium :type git :host github :repo "Exafunction/codeium.el"))
 
-(use-package lsp-ui
-  :ensure t
-  :commands lsp-ui-mode lsp-ui-peek-find-references lsp-ui-peek-find-definitions
-  :after lsp-mode
-  :hook (lsp-mode . lsp-ui-mode)
+;; adiciona suporte a lsp
+(use-package lsp-bridge
+  :straight '(lsp-bridge :type git :host github :repo "manateelazycat/lsp-bridge"
+            :files (:defaults "*.el" "*.py" "acm" "core" "langserver" "multiserver" "resources")
+            :build (:not compile))
+  :init
+  (global-lsp-bridge-mode)
   :config
-  (setq lsp-ui-doc-enable t)
-  (setq lsp-ui-sideline-enable t)
-  (setq lsp-ui-sideline-show-diagnostics t)
-  (setq lsp-ui-sideline-show-code-actions t)
-  (setq lsp-signature-auto-active t)
-  (setq lsp-signature-doc-lines 1)
-  (setq lsp-ui-sideline-show-hover t))
+  (setq lsp-php-intelephense-license-key nil)
+  (setq lsp-inlay-hint-enable nil)
+  (setq lsp-bridge-enable-codeium t)
+  (setq lsp-bridge-enable-completion-at-point t)
+  (setq lsp-brige-enable-auto-completion t))
 
-(setq company-backends '(company-capf company-files))
-(setq lsp-signature-function 'lsp-signature-posframe)
+;; configura o backend do completion
+(setq lsp-bridge-completion-backend-list
+      '(acm-backend-codeium acm-backend-lsp acm-backend-yasnippet acm-backend-buffer))
 
 ;; which-key ajuda a ver os atalhos
 (use-package which-key
@@ -227,14 +329,17 @@
   (which-key-mode))
 
 ;; configura o lsp do go
-(setenv "PATH" (concat (getenv "PATH") ":/Users/fabio/go/bin"))
-(add-to-list 'exec-path "/Users/fabio/go/bin")
+;; for mac
+;;(setenv "PATH" (concat (getenv "PATH") ":/Users/fabio/go/bin"))
+;;(add-to-list 'exec-path "/Users/fabio/go/bin")
+
+;; for linux
+(setenv "PATH" (concat (getenv "PATH") ":/home/fabio/go/bin"))
+(add-to-list 'exec-path "/home/fabio/go/bin")
 
 (use-package go-mode
-  :ensure t)
-
-(add-hook 'go-mode-hook #'company-mode)
-(add-hook 'go-mode-hook #'lsp)
+  :ensure t
+  :hook ((go-mode . lsp-bridge-mode)))
 
 (defun lsp-go-install-save-hooks ()
   (add-hook 'before-save-hook #'lsp-format-buffer t t)
@@ -246,16 +351,9 @@
 (setq x-select-enable-clipboard t)
 (setq select-enable-clipboard t)
 
-;; diagnostics
-(use-package flycheck
-  :ensure t
-  :init (global-flycheck-mode))
-
-(setq lsp-diagnostic-package :flycheck)
-(setq lsp-lens-enable t)
-(setq lsp-inlay-hint-enable t)
-(add-hook 'lsp-mode-hook #'lsp-lens-mode)
-(add-hook 'lsp-mode-hook #'lsp-inlay-hints-mode)
+(setq lsp-bridge-enable-hover-diagnostic t)
+(setq lsp-bridge-enable-popup-documentation t)
+(setq lsp-bridge-enable-log t)
 
 ;; terminal embutido
 (use-package vterm
@@ -348,29 +446,15 @@
   :ensure t
   :bind ("M-o" . ace-window))
 
-;; aumenta o tamanho do número da janela e deixa verde
-(custom-set-faces
- '(aw-leading-char-face
-   ((t (:inherit ace-jump-face-foreground
-                 :height 2.0
-                 :foreground "green"
-                 :weight bold)))))
-
 ;; em alguns casos de palavras com início igual, o vertico
-;; entende que quer ele, e pode ter problemas, quando por exemplo
-;; vai copiar um arquivo com nome .env-example e a cópia quer dar
-;; o nome de .env o vertico vai selecionar o .env-example e não
-;; vai te permitir criar com o nome desejado, nesses cados é
+;; entende que você  quer ele, e pode ter problemas, quando por exemplo
+;; vai copiar um arquivo com nome .env-example e na cópia quer dar
+;; o nome de .env, o vertico vai selecionar o .env-example e não
+;; vai te permitir criar com o nome desejado, nesses casos é
 ;; necessário desativar o vertico
 (global-set-key (kbd "C-c v") 'vertico-mode)
 
-;; Hooks para Neotree: Reativar o Vertico depois de completar a ação
-(add-hook 'neotree-create-file-after-hook #'my/enable-vertico-after-file-action)
-(add-hook 'neotree-rename-file-after-hook #'my/enable-vertico-after-file-action)
-(add-hook 'neotree-move-file-after-hook #'my/enable-vertico-after-file-action)
-(add-hook 'neotree-copy-file-after-hook #'my/enable-vertico-after-file-action)
-
-;; atalhos para facilitar redimensionar as janelas
+ ;; atalhos para facilitar redimensionar as janelas
 (global-set-key (kbd "C-s-<left>")  'shrink-window-horizontally)
 (global-set-key (kbd "C-s-<right>") 'enlarge-window-horizontally)
 (global-set-key (kbd "C-s-<down>")  'shrink-window)
@@ -387,22 +471,40 @@
 (global-set-key (kbd "C-c c") 'comment-line)
 (global-set-key (kbd "C-c u") 'comment-or-uncomment-region)
  
-;; Neotree
-(global-set-key (kbd "C-c o") 'neotree-toggle)
-
 ;; LSP actions
-(global-set-key (kbd "C-c a a") 'lsp-execute-code-action)
-(global-set-key (kbd "C-c a o") 'lsp-organize-imports)
-(global-set-key (kbd "C-c a r") 'lsp-rename)
-(global-set-key (kbd "C-c a f") 'lsp-format-buffer)
+;; Executar ação de código
+(global-set-key (kbd "C-c a a") 'lsp-bridge-code-action)
+;; Formatar buffer
+(global-set-key (kbd "C-c a f") 'lsp-bridge-format-buffer)
+;; Organizar imports
+(global-set-key (kbd "C-c a o") 'lsp-bridge-organize-imports)
 
 ;; LSP infos
-(global-set-key (kbd "C-c l k") (lambda () (interactive) (lsp-signature-activate)))
-(global-set-key (kbd "C-c l h") 'lsp-describe-thing-at-point)
-(global-set-key (kbd "C-c l d") 'lsp-ui-peek-find-definitions)
-(global-set-key (kbd "C-c l r") 'lsp-ui-peek-find-references)
-(global-set-key (kbd "C-c l i") 'lsp-ui-peek-find-implementation)
-(global-set-key (kbd "C-c l s") 'lsp-ui-peek-find-workspace-symbol)
+;; Mostrar documentação do símbolo sob o cursor
+(global-set-key (kbd "C-c l k") #'lsp-bridge-popup-documentation)
+;; Ir para definição
+(global-set-key (kbd "C-c l d") #'lsp-bridge-find-def)
+;; Buscar referências
+(global-set-key (kbd "C-c l r") #'lsp-bridge-find-references)
+;; Buscar implementações
+(global-set-key (kbd "C-c l i") #'lsp-bridge-find-impl)
+;; Buscar símbolos no workspace
+(global-set-key (kbd "C-c l s") #'lsp-bridge-workspace-symbol)
+;; Voltar (depois de usar find-def, por exemplo)
+(global-set-key (kbd "C-c l b") #'lsp-bridge-find-def-return)
+;; Rename
+(global-set-key (kbd "C-c l n") #'lsp-bridge-rename)
+;; Ver diagnóstico atual
+(global-set-key (kbd "C-c l e") #'lsp-bridge-diagnostic-list)
+;; Ir para o próximo erro
+(global-set-key (kbd "C-c l j") #'lsp-bridge-diagnostic-jump-next)
+;; Ir para o erro anterior
+(global-set-key (kbd "C-c l p") #'lsp-bridge-diagnostic-jump-prev)
+
+;; rolar documentação
+;(setq lsp-bridge-popup-documentation-scroll-step 2)
+(global-set-key (kbd "C-{") #'lsp-bridge-popup-documentation-scroll-up)
+(global-set-key (kbd "C-}") #'lsp-bridge-popup-documentation-scroll-down)
 
 ;; Terminal
 (global-set-key (kbd "C-c t") 'my/toggle-vterm)
@@ -415,4 +517,4 @@
 (global-set-key (kbd "C-c /") 'consult-ripgrep)
 (global-set-key (kbd "C-c f") 'project-find-file)
 
-
+(put 'upcase-region 'disabled nil)
