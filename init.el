@@ -67,7 +67,8 @@
 ;;(setq mac-option-modifier 'none)
 
 ;; configura a fonte do emacs
-(set-face-attribute 'default nil :font "Iosevka Nerd Font" :height 110)
+(set-face-attribute 'default nil :font "JetBrainsMono Nerd Font" :height 110)
+;;(set-face-attribute 'default nil :font "Iosevka Nerd Font" :height 110)
 
 ;; usa MELPA como gerenciador de pacotes
 (require 'package)
@@ -401,6 +402,16 @@
               (switch-to-buffer buf)
             (vterm)))))))
 
+;; Enable rich annotations using the Marginalia package
+(use-package marginalia
+  ;; Bind `marginalia-cycle' locally in the minibuffer.  To make the binding
+  ;; available in the *Completions* buffer, add it to the
+  ;; `completion-list-mode-map'.
+  :bind (:map minibuffer-local-map
+         ("M-A" . marginalia-cycle))
+  :init
+  (marginalia-mode))
+
 ;; Instalar e configurar o git-gutter
 (use-package git-gutter
   :ensure t
@@ -421,9 +432,9 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(git-gutter:added-sign "🌱")
- '(git-gutter:deleted-sign "🗑️")
- '(git-gutter:modified-sign "✏️")
+ '(git-gutter:added-sign "█")
+ '(git-gutter:deleted-sign "█")
+ '(git-gutter:modified-sign "█")
  '(git-gutter:window-width 2)
  '(package-selected-packages nil))
   ;; Arquivo deletado
